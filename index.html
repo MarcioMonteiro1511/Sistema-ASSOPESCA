@@ -1,59 +1,656 @@
-'use client'
-              >
-                Saída Manhã
-              </button>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-              <button
-                onClick={() => registrar('Entrada Tarde')}
-                className="bg-green-600 hover:bg-green-800 text-white p-5 rounded-2xl font-bold text-lg shadow-lg"
-              >
-                Entrada Tarde
-              </button>
+<title>ASSOPESCA - Controle de Presença</title>
 
-              <button
-                onClick={() => registrar('Saída Tarde')}
-                className="bg-green-500 hover:bg-green-700 text-white p-5 rounded-2xl font-bold text-lg shadow-lg"
-              >
-                Saída Tarde
-              </button>
-            </div>
-          </div>
-        </section>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-        <section className="bg-white rounded-[35px] shadow-xl p-10">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-          <h2 className="text-3xl font-black text-green-900 mb-8">
-            Últimos Registros
-          </h2>
+<style>
 
-          <div className="overflow-auto rounded-2xl border border-gray-200">
-
-            <table className="w-full">
-
-              <thead>
-                <tr className="bg-green-900 text-white text-left">
-                  <th className="p-5">Funcionário</th>
-                  <th className="p-5">Tipo</th>
-                  <th className="p-5">Horário</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {registros.map((item, index) => (
-                  <tr
-                    key={index}
-                    className="border-b hover:bg-green-50 transition-all"
-                  >
-                    <td className="p-5">{item.funcionario}</td>
-                    <td className="p-5">{item.tipo}</td>
-                    <td className="p-5">{item.horario}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
-    </div>
-  )
+:root{
+    --verde:#0f8f3d;
+    --verde-escuro:#066629;
+    --verde-claro:#18b44f;
+    --fundo:#f5f7fa;
+    --card:#ffffff;
+    --texto:#222;
+    --cinza:#888;
 }
+
+.dark{
+    --fundo:#10151d;
+    --card:#1b2430;
+    --texto:#fff;
+    --cinza:#bbb;
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+
+body{
+    background:var(--fundo);
+    color:var(--texto);
+}
+
+header{
+    background:linear-gradient(90deg,var(--verde),var(--verde-claro));
+    color:#fff;
+    padding:15px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.logo{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.logo-oval{
+    width:60px;
+    height:60px;
+    border-radius:50%;
+    background:#fff;
+    color:var(--verde);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-weight:700;
+}
+
+.container{
+    padding:20px;
+}
+
+.card{
+    background:var(--card);
+    border-radius:15px;
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:0 5px 15px rgba(0,0,0,.08);
+}
+
+input,select,button,textarea{
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    border-radius:10px;
+    border:1px solid #ccc;
+}
+
+button{
+    background:var(--verde);
+    color:#fff;
+    border:none;
+    cursor:pointer;
+    transition:.3s;
+    font-weight:600;
+}
+
+button:hover{
+    background:var(--verde-escuro);
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:20px;
+}
+
+.status{
+    padding:8px;
+    border-radius:8px;
+    color:#fff;
+    font-size:13px;
+    display:inline-block;
+}
+
+.presente{
+    background:#0f8f3d;
+}
+
+.ausente{
+    background:#d63031;
+}
+
+video,canvas,img{
+    width:100%;
+    border-radius:12px;
+    margin-top:10px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th,td{
+    padding:10px;
+    border-bottom:1px solid #ddd;
+    text-align:left;
+    font-size:14px;
+}
+
+.actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.hidden{
+    display:none;
+}
+
+.top-buttons{
+    display:flex;
+    gap:10px;
+}
+
+.theme-btn{
+    width:auto;
+    padding:10px 15px;
+}
+
+@media(max-width:768px){
+
+    th,td{
+        font-size:12px;
+    }
+
+}
+
+</style>
+</head>
+<body>
+
+<header>
+
+<div class="logo">
+<div class="logo-oval">AP</div>
+<div>
+<h2>ASSOPESCA</h2>
+<small>Controle de Presença</small>
+</div>
+</div>
+
+<div class="top-buttons">
+<button class="theme-btn" onclick="toggleTheme()">🌙 Tema</button>
+<button class="theme-btn" onclick="logout()">Sair</button>
+</div>
+
+</header>
+
+<div class="container">
+
+<!-- LOGIN -->
+
+<div id="loginScreen" class="card">
+
+<h2>Login</h2>
+
+<input type="text" id="loginUser" placeholder="Usuário">
+<input type="password" id="loginPass" placeholder="Senha">
+
+<button onclick="login()">Entrar</button>
+
+<p style="margin-top:15px;color:gray;">
+Admin padrão:
+<br>
+usuário: admin
+<br>
+senha: admin123
+</p>
+
+</div>
+
+<!-- FUNCIONARIO -->
+
+<div id="employeePanel" class="hidden">
+
+<div class="card">
+
+<h2>Registrar Presença</h2>
+
+<select id="periodo">
+<option value="manha_entrada">Entrada Manhã</option>
+<option value="manha_saida">Saída Manhã</option>
+<option value="tarde_entrada">Entrada Tarde</option>
+<option value="tarde_saida">Saída Tarde</option>
+</select>
+
+<video id="video" autoplay playsinline></video>
+
+<button onclick="startCamera()">Abrir Câmera</button>
+<button onclick="capturePhoto()">Capturar Foto</button>
+
+<canvas id="canvas" class="hidden"></canvas>
+
+<button onclick="registrarPresenca()">Registrar Presença</button>
+
+</div>
+
+</div>
+
+<!-- ADMIN -->
+
+<div id="adminPanel" class="hidden">
+
+<div class="grid">
+
+<div class="card">
+<h3>Total Funcionários</h3>
+<h1 id="totalFuncionarios">0</h1>
+</div>
+
+<div class="card">
+<h3>Presentes Hoje</h3>
+<h1 id="presentesHoje">0</h1>
+</div>
+
+<div class="card">
+<h3>Ausentes</h3>
+<h1 id="ausentesHoje">0</h1>
+</div>
+
+<div class="card">
+<h3>Registros Hoje</h3>
+<h1 id="registrosHoje">0</h1>
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>Dashboard</h2>
+
+<canvas id="grafico"></canvas>
+
+</div>
+
+<div class="card">
+
+<h2>Cadastrar Funcionário</h2>
+
+<input type="text" id="novoNome" placeholder="Nome">
+<input type="text" id="novoLogin" placeholder="Login">
+<input type="password" id="novoSenha" placeholder="Senha">
+
+<button onclick="cadastrarFuncionario()">Cadastrar</button>
+
+</div>
+
+<div class="card">
+
+<h2>Funcionários</h2>
+
+<table>
+
+<thead>
+<tr>
+<th>Nome</th>
+<th>Login</th>
+<th>Status</th>
+<th>Ações</th>
+</tr>
+</thead>
+
+<tbody id="listaFuncionarios"></tbody>
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h2>Histórico de Registros</h2>
+
+<table>
+
+<thead>
+<tr>
+<th>Funcionário</th>
+<th>Período</th>
+<th>Data/Hora</th>
+<th>Foto</th>
+</tr>
+</thead>
+
+<tbody id="historico"></tbody>
+
+</table>
+
+<button onclick="exportarJSON()">Exportar Relatório</button>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [
+{
+nome:'Administrador',
+login:'admin',
+senha:'admin123',
+tipo:'admin',
+ativo:true
+}
+];
+
+let registros = JSON.parse(localStorage.getItem('registros')) || [];
+
+let usuarioAtual = null;
+
+function salvar(){
+    localStorage.setItem('usuarios',JSON.stringify(usuarios));
+    localStorage.setItem('registros',JSON.stringify(registros));
+}
+
+function login(){
+
+    const user = document.getElementById('loginUser').value;
+    const pass = document.getElementById('loginPass').value;
+
+    const encontrado = usuarios.find(u => u.login === user && u.senha === pass);
+
+    if(!encontrado){
+        alert('Usuário inválido');
+        return;
+    }
+
+    usuarioAtual = encontrado;
+
+    document.getElementById('loginScreen').classList.add('hidden');
+
+    if(encontrado.tipo === 'admin'){
+        document.getElementById('adminPanel').classList.remove('hidden');
+        carregarDashboard();
+    }else{
+        document.getElementById('employeePanel').classList.remove('hidden');
+    }
+
+}
+
+function logout(){
+
+    usuarioAtual = null;
+
+    document.getElementById('loginScreen').classList.remove('hidden');
+    document.getElementById('employeePanel').classList.add('hidden');
+    document.getElementById('adminPanel').classList.add('hidden');
+
+}
+
+function cadastrarFuncionario(){
+
+    const nome = document.getElementById('novoNome').value;
+    const login = document.getElementById('novoLogin').value;
+    const senha = document.getElementById('novoSenha').value;
+
+    if(!nome || !login || !senha){
+        alert('Preencha tudo');
+        return;
+    }
+
+    usuarios.push({
+        nome,
+        login,
+        senha,
+        tipo:'funcionario',
+        ativo:true
+    });
+
+    salvar();
+
+    carregarDashboard();
+
+    alert('Funcionário cadastrado');
+
+}
+
+function carregarDashboard(){
+
+    const funcionarios = usuarios.filter(u => u.tipo === 'funcionario');
+
+    document.getElementById('totalFuncionarios').innerText = funcionarios.length;
+
+    const hoje = new Date().toLocaleDateString();
+
+    const hojeRegistros = registros.filter(r => r.data.includes(hoje));
+
+    document.getElementById('registrosHoje').innerText = hojeRegistros.length;
+
+    const presentes = [...new Set(hojeRegistros.map(r => r.usuario))];
+
+    document.getElementById('presentesHoje').innerText = presentes.length;
+
+    document.getElementById('ausentesHoje').innerText =
+        funcionarios.length - presentes.length;
+
+    let lista = '';
+
+    funcionarios.forEach(f => {
+
+        lista += `
+        <tr>
+        <td>${f.nome}</td>
+        <td>${f.login}</td>
+        <td>
+        <span class="status ${f.ativo ? 'presente':'ausente'}">
+        ${f.ativo ? 'Ativo':'Inativo'}
+        </span>
+        </td>
+
+        <td class="actions">
+
+        <button onclick="resetSenha('${f.login}')">
+        Resetar
+        </button>
+
+        <button onclick="toggleAtivo('${f.login}')">
+        Ativar/Inativar
+        </button>
+
+        <button onclick="excluirFuncionario('${f.login}')">
+        Excluir
+        </button>
+
+        </td>
+
+        </tr>
+        `;
+
+    });
+
+    document.getElementById('listaFuncionarios').innerHTML = lista;
+
+    let hist = '';
+
+    registros.reverse().forEach(r => {
+
+        hist += `
+        <tr>
+
+        <td>${r.usuario}</td>
+        <td>${r.periodo}</td>
+        <td>${r.data}</td>
+
+        <td>
+        <img src="${r.foto}" width="60">
+        </td>
+
+        </tr>
+        `;
+
+    });
+
+    document.getElementById('historico').innerHTML = hist;
+
+    gerarGrafico();
+
+}
+
+function resetSenha(login){
+
+    const nova = prompt('Nova senha');
+
+    const user = usuarios.find(u => u.login === login);
+
+    user.senha = nova;
+
+    salvar();
+
+    alert('Senha alterada');
+
+}
+
+function toggleAtivo(login){
+
+    const user = usuarios.find(u => u.login === login);
+
+    user.ativo = !user.ativo;
+
+    salvar();
+
+    carregarDashboard();
+
+}
+
+function excluirFuncionario(login){
+
+    usuarios = usuarios.filter(u => u.login !== login);
+
+    salvar();
+
+    carregarDashboard();
+
+}
+
+async function startCamera(){
+
+    const video = document.getElementById('video');
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+        video:true
+    });
+
+    video.srcObject = stream;
+
+}
+
+let fotoCapturada = '';
+
+function capturePhoto(){
+
+    const canvas = document.getElementById('canvas');
+    const video = document.getElementById('video');
+
+    canvas.classList.remove('hidden');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext('2d');
+
+    ctx.drawImage(video,0,0);
+
+    fotoCapturada = canvas.toDataURL('image/png');
+
+    alert('Foto capturada');
+
+}
+
+function registrarPresenca(){
+
+    const periodo = document.getElementById('periodo').value;
+
+    const hoje = new Date().toLocaleDateString();
+
+    const existe = registros.find(r =>
+        r.usuario === usuarioAtual.nome &&
+        r.periodo === periodo &&
+        r.data.includes(hoje)
+    );
+
+    if(existe){
+        alert('Registro já realizado');
+        return;
+    }
+
+    registros.push({
+        usuario:usuarioAtual.nome,
+        periodo,
+        data:new Date().toLocaleString(),
+        foto:fotoCapturada
+    });
+
+    salvar();
+
+    alert('Presença registrada');
+
+}
+
+function gerarGrafico(){
+
+    const ctx = document.getElementById('grafico');
+
+    const total = registros.length;
+
+    const manha = registros.filter(r => r.periodo.includes('manha')).length;
+
+    const tarde = registros.filter(r => r.periodo.includes('tarde')).length;
+
+    new Chart(ctx,{
+        type:'bar',
+        data:{
+            labels:['Total','Manhã','Tarde'],
+            datasets:[{
+                label:'Registros',
+                data:[total,manha,tarde]
+            }]
+        }
+    });
+
+}
+
+function exportarJSON(){
+
+    const dataStr = JSON.stringify(registros,null,2);
+
+    const blob = new Blob([dataStr],{
+        type:'application/json'
+    });
+
+    const a = document.createElement('a');
+
+    a.href = URL.createObjectURL(blob);
+
+    a.download = 'relatorio.json';
+
+    a.click();
+
+}
+
+function toggleTheme(){
+
+    document.body.classList.toggle('dark');
+
+}
+
+</script>
+
+</body>
+</html>
