@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASSOPESCA - Sistema Empresarial</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+:root{
+--primary:#1e8449;
+--secondary:#27ae60;
+--danger:#e74c3c;
+--dark:#2c3e50;
+--bg:#f4f7f6;
+--white:#ffffff;
+}
+body{margin:0;font-family:Segoe UI;background:var(--bg)}
+.hidden{display:none}
+nav{background:var(--primary);color:#fff;padding:15px;display:flex;justify-content:space-between}
+.container{padding:20px}
+.card{background:#fff;padding:20px;border-radius:10px;margin-bottom:20px;box-shadow:0 5px 15px rgba(0,0,0,.05)}
+input,select,button{width:100%;padding:10px;margin:5px 0;border-radius:6px;border:1px solid #ddd}
+button{background:var(--secondary);color:#fff;font-weight:bold;cursor:pointer;border:none}
+button:hover{background:var(--primary)}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+</style>
+</head>
+<body>
+
+<div id="login">
+<div class="container">
+<div class="card">
+<h2>ASSOPESCA - Empresarial</h2>
+<input id="user" placeholder="Usuário">
+<input id="pass" type="password" placeholder="Senha">
+<button onclick="login()">Entrar</button>
+<p id="msg" style="color:red"></p>
+</div>
+</div>
+</div>
+
+<div id="app" class="hidden">
+
+<nav>
+<div><strong>ASSOPESCA</strong> | <span id="roleView"></span></div>
+<div>
+<span id="nameView"></span>
+<button onclick="logout()" style="width:auto;background:transparent;border:1px solid #fff">Sair</button>
+</div>
+</nav>
+
+<div class="container">
+
+<div id="colabArea" class="hidden">
+
+<div class="card">
+<h3>Registrar Atendimento</h3>
+<input id="socio" placeholder="Nome do Sócio">
+<input id="insc" placeholder="Inscrição">
+<select id="servico"></select>
+<button onclick="registrar()">Salvar</button>
+</div>
+
+<div class="card">
+<h3>Minha Produção</h3>
+<table>
+<thead><tr><th>Sócio</th><th>Serviço</th><th>Data</th></tr></thead>
+<tbody id="tColab"></tbody>
+</table>
+</div>
+
+</div>
+
+<div id="adminArea" class="hidden">
+
+<div class="grid">
+
+<div class="card">
+<h3>Financeiro</h3>
+<p><b>Receita Total:</b> R$ <span id="receitaTotal"></span></p>
+<p><b>Atendimentos:</b> <span id="totalAtend"></span></p>
+</div>
+
+<div class="card">
+<h3>Meta Mensal</h3>
+<input id="metaValor" type="number" placeholder="Meta mensal">
+<button onclick="salvarMeta()">Salvar Meta</button>
+<p><b>Progresso:</b> <span id="metaStatus"></span></p>
+</div>
+
+</div>
+
+<div class="card">
+<h3>Dashboard</h3>
+<canvas id="grafico"></canvas>
+</div>
+
+<div class="card">
+<h3>Relatório Geral</h3>
+<button onclick="exportar()">Exportar Excel</button>
+<table>
+<thead><tr><th>Colaborador</th><th>Sócio</th><th>Serviço</th><th>Data</th></tr></thead>
+<tbody id="tAdmin"></tbody>
+</table>
+</div>
+
+<div class="card">
+<h3>Auditoria</h3>
+<table>
+<thead><tr><th>Usuário</th><th>Ação</th><th>Data</th></tr></thead>
+<tbody id="tLog"></tbody>
+</table>
+</div>
+
+</div>
+
+</div>
+</div>
+
+<script>
+const SERVICOS=[
+{name:"Manutenção RGP",valor:50},
+{name:"Seguro Defeso",valor:80},
+{name:"Aposentadoria",valor:120},
+{name:"Auxílio Doença",valor:100}
+];
+
+let db=JSON.parse(localStorage.getItem("assopesca_emp"))||{
+users:[
+{u:"admin",p:"123",n:"Diretoria",r:"admin"},
+{u:"sarah",p:"123",n:"Sarah",r:"colab"}
+],
+records:[],
+financeiro:[],
+meta:0,
+logs:[]
+};
+
+let current=null;
+function save(){localStorage.setItem("assopesca_emp",JSON.stringify(db))}
+
+function log(acao){
+db.logs.push({user:current.n,acao,date:new Date().toLocaleString()})
+save()
+}
+
+function login(){
+const u=document.getElementById("user").value;
+const p=document.getElementById("pass").value;
+const user=db.users.find(x=>x.u===u && x.p===p);
+if(!user){msg.innerText="Credenciais inválidas";return;}
+current=user;
+document.getElementById("login").classList.add("hidden");
+document.getElementById("app").classList.remove("hidden");
+nameView.innerText=current.n;
+roleView.innerText=current.r.toUpperCase();
+carregarSistema();
+log("Login no sistema");
+}
+
+function logout(){location.reload()}
+
+function carregarSistema(){
+servico.innerHTML=SERVICOS.map(s=>`<option value="${s.name}">${s.name}</option>`).join("");
+if(current.r==="admin"){
+adminArea.classList.remove("hidden");
+colabArea.classList.add("hidden");
+atualizarAdmin();
+}else{
+colabArea.classList.remove("hidden");
+adminArea.classList.add("hidden");
+atualizarColab();
+}
+}
+
+function registrar(){
+const socioVal=socio.value;
+const inscVal=insc.value;
+const servVal=servico.value;
+if(!socioVal||!inscVal)return alert("Preencha dados");
+
+db.records.push({
+colab:current.n,
+socio:socioVal,
+serv:servVal,
+date:new Date().toLocaleString()
+});
+
+const servObj=SERVICOS.find(s=>s.name===servVal);
+db.financeiro.push({valor:servObj.valor});
+
+save();
+log("Registrou atendimento");
+socio.value="";insc.value="";
+atualizarColab();
+}
+
+function atualizarColab(){
+const dados=db.records.filter(r=>r.colab===current.n);
+tColab.innerHTML=dados.map(r=>`<tr><td>${r.socio}</td><td>${r.serv}</td><td>${r.date}</td></tr>`).join("");
+}
+
+function atualizarAdmin(){
+tAdmin.innerHTML=db.records.map(r=>`<tr><td>${r.colab}</td><td>${r.socio}</td><td>${r.serv}</td><td>${r.date}</td></tr>`).join("");
+
+tLog.innerHTML=db.logs.map(l=>`<tr><td>${l.user}</td><td>${l.acao}</td><td>${l.date}</td></tr>`).join("");
+
+const receita=db.financeiro.reduce((a,b)=>a+b.valor,0);
+receitaTotal.innerText=receita.toFixed(2);
+totalAtend.innerText=db.records.length;
+
+metaStatus.innerText=db.meta?((db.records.length/db.meta*100).toFixed(1)+"%"):"Sem meta";
+
+renderGrafico();
+}
+
+function salvarMeta(){
+db.meta=parseInt(metaValor.value);
+save();
+atualizarAdmin();
+log("Alterou meta mensal");
+}
+
+function renderGrafico(){
+const contagem={};
+db.records.forEach(r=>contagem[r.serv]=(contagem[r.serv]||0)+1);
+
+new Chart(grafico,{
+type:"bar",
+data:{labels:Object.keys(contagem),
+datasets:[{data:Object.values(contagem),backgroundColor:"#27ae60"}]}
+});
+}
+
+function exportar(){
+const ws=XLSX.utils.json_to_sheet(db.records);
+const wb=XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb,ws,"Relatorio");
+XLSX.writeFile(wb,"ASSOPESCA_EMPRESARIAL.xlsx");
+log("Exportou relatório Excel");
+}
+</script>
+
+</body>
+</html>
